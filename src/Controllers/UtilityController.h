@@ -65,6 +65,9 @@ private:
     // Ask user to select a mode
     ModeEnum handleModeSelect();
 
+    // Report whether a mode's hardware exists on this board (BLE/USB stubs on P4)
+    bool isModeAvailable(ModeEnum mode);
+
     // Enable internal pull-up resistors
     void handleEnablePullups();
 

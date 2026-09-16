@@ -8,8 +8,9 @@ void Tab5Board::initialize() {
     M5.begin(cfg);
 
     // The Tab5 MIPI-DSI panel is 720x1280 in its native (portrait) orientation.
-    // Rotate to landscape so the shared M5DeviceView layout reads left-to-right.
-    deviceView.setRotation(1);
+    // Rotation 3 = landscape with the USB-C/ports edge oriented the right way up
+    // (rotation 1 renders the UI upside down on this panel).
+    deviceView.setRotation(3);
     deviceView.setBrightness(255);
 
     deviceView.logo();
