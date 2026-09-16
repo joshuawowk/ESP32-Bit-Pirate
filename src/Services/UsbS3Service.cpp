@@ -1,5 +1,8 @@
 #include "UsbS3Service.h"
-#include <sstream>  
+
+#if HAS_USB_STACK
+
+#include <sstream>
 #include <esp_mac.h>
 #include <esp32-hal-tinyusb.h>
 #include "freertos/FreeRTOS.h"
@@ -745,3 +748,5 @@ std::string UsbS3Service::getUsbSerialFromEfuseMac() {
 
     return std::string("ESP32-BP-") + macSuffix;
 }
+
+#endif  // HAS_USB_STACK

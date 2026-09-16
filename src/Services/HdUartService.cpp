@@ -161,7 +161,9 @@ uart_config_t HdUartService::buildUartConfig(unsigned long baud, uint8_t bits, c
         .parity = parityMode,
         .stop_bits = stopBits,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .source_clk = UART_SCLK_APB
+        // UART_SCLK_DEFAULT is the portable clock source across IDF 5.x targets
+        // (resolves to APB on the S3; the P4 has no UART_SCLK_APB enum).
+        .source_clk = UART_SCLK_DEFAULT
     };
 
     return config;

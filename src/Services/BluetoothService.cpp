@@ -1,4 +1,7 @@
 #include "BluetoothService.h"
+
+#if HAS_NATIVE_BLE
+
 #include "esp_mac.h"
 
 
@@ -633,3 +636,5 @@ const uint8_t BluetoothService::HID_REPORT_MAP[] = {
     0x81, 0x00,        //   Input (Data,Array)
     0xC0               // End Collection
 };
+
+#endif  // HAS_NATIVE_BLE

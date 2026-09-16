@@ -11,7 +11,9 @@
 #include <nvs.h>
 #include <esp_mac.h>
 #include "soc/soc.h"
-#include "soc/rtc_cntl_reg.h"
+#if __has_include("soc/rtc_cntl_reg.h")
+#include "soc/rtc_cntl_reg.h"  // absent on the ESP32-P4 (different LP_AON layout)
+#endif
 #include "esp_image_format.h"
 
 namespace {
@@ -398,8 +400,13 @@ void SystemService::reboot(bool hard) const {
 }
 
 void SystemService::rebootToBootloader() const {
+    // The RTC_CNTL force-download-boot register only exists on the classic
+    // Xtensa parts (S3, etc.); the ESP32-P4 uses a different LP_AON layout and
+    // does not define these macros, so fall back to a plain restart there.
+#if defined(RTC_CNTL_OPTION1_REG) && defined(RTC_CNTL_FORCE_DOWNLOAD_BOOT)
     REG_WRITE(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
     delay(100);
+#endif
     esp_restart();
 }
 

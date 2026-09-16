@@ -8,6 +8,7 @@
 #include <Boards/TDisplayS3/TdisplayWifiSetup.h>
 #include <Boards/WaveshareS3Geek/WaveshareS3GeekWifiSetup.h>
 #include <Boards/VisionMasterT190/VisionMasterT190WifiSetup.h>
+#include <Boards/Tab5/Tab5WifiSetup.h>
 #include <Interfaces/IDeviceView.h>
 #include <Interfaces/IInput.h>
 #include <Interfaces/IUtilityService.h>

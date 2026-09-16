@@ -17,6 +17,7 @@
 #include <Boards/WaveshareS3Geek/WaveshareS3GeekBoard.h>
 #include <Boards/TEmbed/TEmbedBoard.h>
 #include <Boards/VisionMasterT190/VisionMasterT190Board.h>
+#include <Boards/Tab5/Tab5Board.h>
 #include <Boards/Custom/CustomBoard.h>
 #include <Boards/Common/Serial/BoardHostSerial.h>
 #include <Providers/DependencyProvider.h>
@@ -111,6 +112,12 @@ void setup() {
         IHostSerial& hostSerial = board.getHostSerial();
     #elif defined(DEVICE_VISION_MASTER_T190)
         VisionMasterT190Board board;
+        board.initialize();
+        IDeviceView& deviceView = board.getDeviceView();
+        IInput& deviceInput = board.getDeviceInput();
+        IHostSerial& hostSerial = board.getHostSerial();
+    #elif defined(DEVICE_TAB5)
+        Tab5Board board;
         board.initialize();
         IDeviceView& deviceView = board.getDeviceView();
         IInput& deviceInput = board.getDeviceInput();
