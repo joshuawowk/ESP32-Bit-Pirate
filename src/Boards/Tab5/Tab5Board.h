@@ -2,7 +2,7 @@
 
 #ifdef DEVICE_TAB5
 
-#include "Boards/Common/Views/M5DeviceView.h"
+#include "Boards/Tab5/Tab5DeviceView.h"
 #include "Boards/Tab5/Tab5Input.h"
 #include "Boards/Common/Serial/BoardHostSerial.h"
 
@@ -15,7 +15,7 @@ public:
 
 private:
     BoardHostSerial hostSerial;
-    M5DeviceView deviceView;
+    Tab5DeviceView deviceView;
     Tab5Input deviceInput;
 };
 

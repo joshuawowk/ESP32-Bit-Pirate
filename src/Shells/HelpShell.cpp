@@ -498,8 +498,11 @@ void HelpShell::cmdExpander() {
     printHeader("EXPANDER");
 
     static const char* const lines[] = {
-        "This mode bridges to a expander over UART.",
+        "This mode bridges to an expander over UART.",
         "The expander acts as a radio expansion module.",
+        "Works with the ESP32 Bus Expander, and with a",
+        "projectZero / JanOS ESP32-C5 (WiFi monitor, sniff,",
+        "pcap, deauth, handshake, 5GHz, BLE, Zigbee).",
         "https://github.com/geo-tp/ESP32-Bus-Expander",
     };
 

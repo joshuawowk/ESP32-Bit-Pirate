@@ -156,50 +156,74 @@ void ExpanderController::handleConfig() {
         uartService.read();
     }
 
-    // Handshake to detect if the C5 is here
-    uartService.write("handshake\n");
-
-    std::string rxBuffer;
-    uint32_t start = utilityService.nowMs();
-    bool handshakeOk = false;
-
-    while (utilityService.nowMs() - start < 2000) {
-        while (uartService.available()) {
-            char c = uartService.read();
-            rxBuffer += c;
-
-            if (rxBuffer.size() > 128) {
-                rxBuffer.erase(0, rxBuffer.size() - 128);
-            }
-
-            if (rxBuffer.find("[[BP-HANDSHAKE-OK]]") != std::string::npos) {
-                handshakeOk = true;
-                break;
-            }
-        }
-
-        if (handshakeOk) {
-            break;
-        }
-
-        utilityService.sleepMs(5);
+    // Auto-detect the expander:
+    //  - the ESP32 Bus Expander (geo-tp) answers "handshake" -> [[BP-HANDSHAKE-OK]]
+    //  - a projectZero / JanOS ESP32-C5 runs an esp_console REPL: "ping" -> "pong"
+    bool busExpander = probeExpander("handshake\n", "[[BP-HANDSHAKE-OK]]", 2000);
+    bool janosC5 = false;
+    if (!busExpander) {
+        janosC5 = probeExpander("ping\n", "pong", 1500);
     }
 
-    if (!handshakeOk) {
+    if (!busExpander && !janosC5) {
         terminalView.println("Expander handshake failed.");
         terminalView.println("Try to swap RX/TX GPIOs.");
-        terminalView.println("Ensure the Expander is powered.\n");
+        terminalView.println("Ensure the Expander (or C5) is powered.\n");
         configured = false;
         state.setCurrentMode(ModeEnum::HIZ);
         return;
     }
 
-    terminalView.println("Expander handshake OK.");
-    terminalView.println("");
-    terminalView.println(" [ℹ️  INFORMATION] ");
-    terminalView.println(" You are now connected to the Expander.");
-    terminalView.println(" All commands are sent directly to it.\n");
+    if (janosC5) {
+        terminalView.println("projectZero (JanOS) ESP32-C5 detected.");
+        terminalView.println("");
+        terminalView.println(" [ℹ️  INFORMATION] ");
+        terminalView.println(" Connected to the C5 console. Try:");
+        terminalView.println("   help, scan_networks, start_sniffer");
+        terminalView.println("   packet_monitor <ch>, start_pcap radio");
+        terminalView.println("   start_deauth, start_handshake, stop\n");
+    } else {
+        terminalView.println("Expander handshake OK.");
+        terminalView.println("");
+        terminalView.println(" [ℹ️  INFORMATION] ");
+        terminalView.println(" You are now connected to the Expander.");
+        terminalView.println(" All commands are sent directly to it.\n");
+    }
 
     configured = true;
     handleBridge();
+}
+
+/*
+Probe: send a command and scan the UART reply for an expected token
+*/
+bool ExpanderController::probeExpander(const std::string& command, const std::string& expectedToken, uint32_t timeoutMs) {
+    // Flush any stale RX first
+    while (uartService.available()) {
+        uartService.read();
+    }
+
+    uartService.write(command);
+
+    std::string rxBuffer;
+    uint32_t start = utilityService.nowMs();
+
+    while (utilityService.nowMs() - start < timeoutMs) {
+        while (uartService.available()) {
+            char c = uartService.read();
+            rxBuffer += c;
+
+            if (rxBuffer.size() > 256) {
+                rxBuffer.erase(0, rxBuffer.size() - 256);
+            }
+
+            if (rxBuffer.find(expectedToken) != std::string::npos) {
+                return true;
+            }
+        }
+
+        utilityService.sleepMs(5);
+    }
+
+    return false;
 }

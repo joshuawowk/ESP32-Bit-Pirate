@@ -1,29 +1,20 @@
 #pragma once
 
-#if defined(DEVICE_CARDPUTER) || defined(DEVICE_STICKS3)
+#if defined(DEVICE_TAB5)
 
-#include <algorithm>
 #include <M5Unified.h>
 #include "Interfaces/IDeviceView.h"
 #include "Enums/ModeEnum.h"
-#include "States/GlobalState.h"
-#include "Models/PinoutConfig.h"
-#include "Enums/ModeEnum.h"
 #include "Enums/TerminalTypeEnum.h"
+#include "Models/PinoutConfig.h"
 
-#define BACKGROUND_COLOR TFT_BLACK
-#define PRIMARY_COLOR 0x05A3
-#define RECT_COLOR_DARK 0x0841
-#define RECT_COLOR_LIGHT 0xd69a
-#define TEXT_COLOR 0xE71C
-#define TEXT_COLOR_ALT TFT_DARKGRAY
-
-#define DEFAULT_MARGIN 5
-#define DEFAULT_ROUND_RECT 5
-
-#define TOP_BAR_SIZE 30
-
-class M5DeviceView : public IDeviceView {
+// Dedicated device view for the M5Stack Tab5's large MIPI-DSI panel
+// (1280x720 in the landscape rotation used by Tab5Board). Unlike the shared
+// M5DeviceView, every layout here is derived from M5.Display.width()/height()
+// with large, touch-friendly elements. The horizontalSelection() left/right
+// arrow zones line up with Tab5Input's left-third / right-third / center touch
+// mapping so the boot selectors can be driven by tapping the screen.
+class Tab5DeviceView : public IDeviceView {
 public:
     void initialize() override;
     SPIClass& getSharedSpiInstance() override;
@@ -34,13 +25,8 @@ public:
     void loading() override;
     void adapterMode(const std::string& adapterName, const std::string& description, const std::vector<std::string>& details) override;
     void clear() override;
-    void setRotation(uint8_t rotation);
-    void setBrightness(uint8_t brightness) override;
-    uint8_t getBrightness() override;
-    void topBar(const std::string& title, bool submenu, bool searchBar) override;
     void drawLogicTrace(uint8_t pin, const std::vector<uint8_t>& buffer, uint8_t step) override;
     void drawAnalogicTrace(uint8_t pin, const std::vector<uint8_t>& buffer, uint8_t step) override;
-    
     void drawWaterfall(
         const std::string& title,
         float startValue,
@@ -50,7 +36,10 @@ public:
         int rowCount,
         int level
     ) override;
-
+    void setRotation(uint8_t rotation) override;
+    void setBrightness(uint8_t brightness) override;
+    uint8_t getBrightness() override;
+    void topBar(const std::string& title, bool submenu, bool searchBar) override;
     void horizontalSelection(
         const std::vector<std::string>& options,
         uint16_t selectedIndex,
@@ -61,11 +50,7 @@ private:
     void welcomeSerial(const std::string& baudStr);
     void welcomeWeb(const std::string& ipStr);
     void welcomeHotspot(const std::string& ipStr);
-    void showDetailedConfig(const PinoutConfig& config, int selectedIndex);
-    void drawRect(bool selected, uint8_t margin, uint16_t startY, uint16_t sizeX, uint16_t sizeY);
-    void showModeName(std::string& mode, int y);
-    void noMapping();
-    
+    void banner(const std::string& title);
 };
 
 #endif

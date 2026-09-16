@@ -35,6 +35,10 @@ private:
     // Handle the UART bridge with the Expander
     void handleBridge();
 
+    // Send a command over UART and wait until the expected token appears in the
+    // reply (or the timeout elapses). Used to auto-detect which expander is wired.
+    bool probeExpander(const std::string& command, const std::string& expectedToken, uint32_t timeoutMs);
+
     ITerminalView& terminalView;
     IInput& terminalInput;
     IUtilityService& utilityService;
