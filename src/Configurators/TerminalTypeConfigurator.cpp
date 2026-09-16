@@ -8,7 +8,7 @@ TerminalTypeEnum TerminalTypeConfigurator::configure() {
         TerminalTypeEnumMapper::toString(TerminalTypeEnum::WiFiClient),
         TerminalTypeEnumMapper::toString(TerminalTypeEnum::WiFiAp),
         TerminalTypeEnumMapper::toString(TerminalTypeEnum::SerialPort),
-        #ifdef DEVICE_CARDPUTER
+        #if defined(DEVICE_CARDPUTER) || defined(DEVICE_TAB5)
             TerminalTypeEnumMapper::toString(TerminalTypeEnum::Standalone),
         #endif
     };

@@ -14,7 +14,10 @@
 //   center      -> KEY_OK
 class Tab5Input : public IInput {
 public:
-    Tab5Input();
+    // pollKeyboard=false gives a touch-only input (used as the standalone-mode
+    // device input, where the A164 is the terminal input and must not be double-
+    // read here -- and where a GPIO0-based input would clobber the keyboard bus).
+    explicit Tab5Input(bool pollKeyboard = true);
 
     char handler() override;   // blocking read
     char readChar() override;  // non-blocking read
@@ -22,6 +25,7 @@ public:
 
 private:
     char mapTouch();
+    bool pollKeyboard;
 };
 
 #endif

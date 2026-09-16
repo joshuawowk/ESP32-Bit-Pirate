@@ -1,8 +1,9 @@
 #if defined(DEVICE_TAB5)
 
 #include "Tab5Input.h"
+#include "Boards/Tab5/Tab5Keyboard.h"
 
-Tab5Input::Tab5Input() = default;
+Tab5Input::Tab5Input(bool pollKeyboard) : pollKeyboard(pollKeyboard) {}
 
 char Tab5Input::mapTouch() {
     M5.update();
@@ -27,12 +28,19 @@ char Tab5Input::mapTouch() {
 }
 
 char Tab5Input::readChar() {
+    // Prefer the A164 hardware keyboard if present; fall back to touch zones.
+    if (pollKeyboard) {
+        char k = Tab5Keyboard::instance().readChar();
+        if (k != KEY_NONE) {
+            return k;
+        }
+    }
     return mapTouch();
 }
 
 char Tab5Input::handler() {
     char c = KEY_NONE;
-    while ((c = mapTouch()) == KEY_NONE) {
+    while ((c = readChar()) == KEY_NONE) {
         delay(10);
     }
     return c;
@@ -41,7 +49,7 @@ char Tab5Input::handler() {
 void Tab5Input::waitPress(uint32_t timeoutMs) {
     uint32_t start = millis();
     for (;;) {
-        if (mapTouch() != KEY_NONE) {
+        if (readChar() != KEY_NONE) {
             return;
         }
         if (timeoutMs > 0 && (millis() - start) >= timeoutMs) {
