@@ -20,6 +20,8 @@ std::string WifiTypeConfigurator::configure(TerminalTypeEnum& terminalType) {
             setupWaveshareS3GeekWifi(view); // endless loop until a valid WiFi is selected and connected
         #elif defined(DEVICE_VISION_MASTER_T190)
             setupVisionMasterT190Wifi(view);
+        #elif defined(DEVICE_TAB5)
+            setupTab5Wifi(view); // Wi-Fi via on-board ESP32-C6 (esp_hosted)
         #else
             // Use this standalone setup for now
             setupDefaultWifi(); // check stored creds

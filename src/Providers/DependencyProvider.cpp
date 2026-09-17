@@ -126,7 +126,11 @@ DependencyProvider::DependencyProvider(ITerminalView &terminalView, IDeviceView 
                      argTransformer, loRaTransformer,
                      commandTransformer, userInputManager, helpShell,
                      meshtasticShell),
-      expanderController(terminalView, terminalInput, utilityService, uartService, argTransformer, userInputManager, helpShell)
+      expanderController(terminalView, terminalInput, utilityService, uartService, argTransformer, userInputManager, helpShell
+#if defined(DEVICE_TAB5)
+                         , &tab5UsbCdcService
+#endif
+                        )
 {
 }
 

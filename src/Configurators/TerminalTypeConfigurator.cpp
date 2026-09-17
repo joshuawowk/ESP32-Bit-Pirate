@@ -8,7 +8,7 @@ TerminalTypeEnum TerminalTypeConfigurator::configure() {
         TerminalTypeEnumMapper::toString(TerminalTypeEnum::WiFiClient),
         TerminalTypeEnumMapper::toString(TerminalTypeEnum::WiFiAp),
         TerminalTypeEnumMapper::toString(TerminalTypeEnum::SerialPort),
-        #ifdef DEVICE_CARDPUTER
+        #if defined(DEVICE_CARDPUTER) || defined(DEVICE_TAB5)
             TerminalTypeEnumMapper::toString(TerminalTypeEnum::Standalone),
         #endif
     };
@@ -17,6 +17,20 @@ TerminalTypeEnum TerminalTypeConfigurator::configure() {
 
     #if defined(DEVICE_M5STAMPS3) || defined(DEVICE_S3DEVKIT) || defined(DEVICE_CUSTOM)
         selected = selector.selectHeadless();
+    #elif defined(DEVICE_TAB5)
+        // Touch/keyboard menu. If left completely untouched for 30s it defaults
+        // to Serial (the P4's USB-Serial-JTAG resets the chip whenever a terminal
+        // connects, so this lets a connected serial/web host reach the CLI without
+        // a re-tap). The first key or tap cancels the timer -- after that it waits
+        // for a real selection instead of auto-picking whatever is highlighted.
+        selected = selector.select(
+            "ESP32 BIT PIRATE",
+            options,
+            "Select terminal type",
+            "No input for 30s = Serial",
+            30000,
+            2  // default highlight: Serial
+        );
     #else
         selected = selector.select(
             "ESP32 BIT PIRATE",

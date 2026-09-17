@@ -17,6 +17,9 @@
 #include <Boards/WaveshareS3Geek/WaveshareS3GeekBoard.h>
 #include <Boards/TEmbed/TEmbedBoard.h>
 #include <Boards/VisionMasterT190/VisionMasterT190Board.h>
+#include <Boards/Tab5/Tab5Board.h>
+#include <Boards/Tab5/Tab5TerminalView.h>
+#include <Boards/Tab5/Tab5KeyboardInput.h>
 #include <Boards/Custom/CustomBoard.h>
 #include <Boards/Common/Serial/BoardHostSerial.h>
 #include <Providers/DependencyProvider.h>
@@ -111,6 +114,12 @@ void setup() {
         IHostSerial& hostSerial = board.getHostSerial();
     #elif defined(DEVICE_VISION_MASTER_T190)
         VisionMasterT190Board board;
+        board.initialize();
+        IDeviceView& deviceView = board.getDeviceView();
+        IInput& deviceInput = board.getDeviceInput();
+        IHostSerial& hostSerial = board.getHostSerial();
+    #elif defined(DEVICE_TAB5)
+        Tab5Board board;
         board.initialize();
         IDeviceView& deviceView = board.getDeviceView();
         IInput& deviceInput = board.getDeviceInput();
@@ -267,6 +276,26 @@ void setup() {
             dispatcher.setup(terminalType, "standalone");
             dispatcher.run(); // Forever
             break;
+        #endif
+
+        #ifdef DEVICE_TAB5
+        case TerminalTypeEnum::Standalone: {
+            // Tab5 all-in-one: big screen as terminal, A164 keyboard for input.
+            Tab5TerminalView standaloneView;
+            standaloneView.initialize();
+            Tab5KeyboardInput standaloneInput; // A164 hardware keyboard (terminal input)
+            // Touch-only device input: DefaultInput would drive GPIO0 (the A164's
+            // I2C SDA) and kill the keyboard bus; touch is on the internal I2C bus.
+            Tab5Input standaloneDeviceInput(false);
+
+            // deviceView (the board's Tab5DeviceView) is reused for the logic analyzer.
+            DependencyProvider* provider = new DependencyProvider(standaloneView, deviceView, standaloneInput, standaloneDeviceInput,
+                                                                  littleFsService);
+            ActionDispatcher dispatcher(*provider);
+            dispatcher.setup(terminalType, "standalone");
+            dispatcher.run(); // Forever
+            break;
+        }
         #endif
     }
 }

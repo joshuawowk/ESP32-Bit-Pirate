@@ -2,6 +2,7 @@
 #include "driver/gpio.h"
 #include <USBCDC.h>
 #include <algorithm>
+#include "Boards/Common/BoardCapabilities.h"
 
 namespace {
 constexpr size_t USB_RX_BUFFER_SIZE  = 16 * 1024;
@@ -154,7 +155,11 @@ void UsbUartBridgeAdapter::run(const UsbUartBridgeConfig& config, IInput& input,
     hostSerial->disableReboot();
     hostSerial->setRxBufferSize(USB_RX_BUFFER_SIZE);
     hostSerial->setTimeout(0);
-#if ARDUINO_USB_CDC_ON_BOOT
+#if ARDUINO_USB_CDC_ON_BOOT && HAS_USB_STACK
+    // TinyUSB CDC (ARDUINO_USB_MODE=0) reports host line-coding (baud/format)
+    // changes as an event. On the ESP32-P4 (HWCDC / USB-Serial-JTAG) Serial is
+    // an HWCDC with no such event, so this is skipped; the polling fallback
+    // below (hostSerial->baudRate()) keeps the UART baud in sync there.
     Serial.onEvent(ARDUINO_USB_CDC_LINE_CODING_EVENT, onLineCoding);
 #endif
     hostSerial->begin(DEFAULT_BAUD);

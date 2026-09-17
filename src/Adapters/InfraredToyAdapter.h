@@ -97,7 +97,11 @@ private:
 
     static inline uint8_t fastReadPin(uint8_t pin) {
         if (pin < 32) {
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+            return (GPIO.in.val >> pin) & 0x1;   // P4: typed register struct
+#else
             return (GPIO.in >> pin) & 0x1;
+#endif
         }
 
         return (GPIO.in1.val >> (pin - 32)) & 0x1;
@@ -105,7 +109,11 @@ private:
 
     static inline void fastWritePinLow(uint8_t pin) {
         if (pin < 32) {
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+            GPIO.out_w1tc.val = (1UL << pin);   // P4: typed register struct
+#else
             GPIO.out_w1tc = (1UL << pin);
+#endif
             return;
         }
 

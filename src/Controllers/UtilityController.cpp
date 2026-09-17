@@ -1,4 +1,34 @@
 #include "Controllers/UtilityController.h"
+#include "Boards/Common/BoardCapabilities.h"
+
+/*
+Mode availability: some modes need on-die hardware the board may not have
+(e.g. the ESP32-P4 Tab5 has no native BLE and runs USB as HWCDC, so the
+Bluetooth and USB services are capability stubs). Refuse those cleanly.
+*/
+bool UtilityController::isModeAvailable(ModeEnum mode) {
+#if !HAS_NATIVE_BLE
+    if (mode == ModeEnum::Bluetooth) {
+        terminalView.println("");
+        terminalView.println("BLUETOOTH is not available on this board.");
+        terminalView.println("There is no native BLE radio. Use EXPANDER mode");
+        terminalView.println("with an ESP32-C5 for radio features.");
+        terminalView.println("");
+        return false;
+    }
+#endif
+#if !HAS_USB_STACK
+    if (mode == ModeEnum::USB) {
+        terminalView.println("");
+        terminalView.println("USB device mode is not available on this board.");
+        terminalView.println("The P4 runs USB in HWCDC / USB-Serial-JTAG mode.");
+        terminalView.println("");
+        return false;
+    }
+#endif
+    (void)mode;
+    return true;
+}
 
 /*
 Constructor
@@ -74,6 +104,9 @@ ModeEnum UtilityController::handleModeChangeCommand(const TerminalCommand& cmd) 
     if (!cmd.getSubcommand().empty()) {
         ModeEnum newMode = ModeEnumMapper::fromString(cmd.getSubcommand());
         if (newMode != ModeEnum::None) {
+            if (!isModeAvailable(newMode)) {
+                return ModeEnum::None;
+            }
             terminalView.println("Mode changed to " + ModeEnumMapper::toString(newMode));
             terminalView.println(""); 
             return newMode;
@@ -114,6 +147,9 @@ ModeEnum UtilityController::handleModeSelect() {
         return ModeEnum::None;
     } else if (modeNumber >= 1 && modeNumber <= modes.size()) {
         ModeEnum selected = modes[modeNumber - 1];
+        if (!isModeAvailable(selected)) {
+            return ModeEnum::None;
+        }
         if (static_cast<int>(selected) > 9) {
             terminalView.println(""); // Hack to render correctly on web terminal
         }

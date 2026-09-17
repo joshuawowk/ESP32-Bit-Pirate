@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Interfaces/IHostSerial.h>
+#include "Boards/Common/BoardCapabilities.h"
 
 class DefaultHostSerial : public IHostSerial {
 public:
@@ -71,7 +72,10 @@ public:
     }
 
     void disableReboot() override {
-#if ARDUINO_USB_CDC_ON_BOOT
+        // enableReboot() is a TinyUSB USBCDC feature (auto-reset on DTR/1200bps
+        // touch). On the ESP32-P4 Serial is an HWCDC (USB-Serial-JTAG) with no
+        // such member and no CDC-triggered reboot, so this is a no-op there.
+#if ARDUINO_USB_CDC_ON_BOOT && HAS_USB_STACK
         Serial.enableReboot(false);
 #endif
     }

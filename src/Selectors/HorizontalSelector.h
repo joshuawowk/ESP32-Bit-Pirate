@@ -16,7 +16,9 @@ public:
         const std::string& title,
         const std::vector<std::string>& options,
         const std::string& description1 = "",
-        const std::string& description2 = ""
+        const std::string& description2 = "",
+        uint32_t timeoutMs = 0,   // 0 = block until input (default). >0 = auto-select startIndex after this long with NO input; the first key/tap cancels the timer for good.
+        int startIndex = 0        // initially highlighted option (also the auto-select target on timeout)
     );
 
     int selectHeadless();

@@ -73,6 +73,9 @@ and injecting shared instances of core components
 #include "Controllers/CellController.h"
 #include "Controllers/FmController.h"
 #include "Controllers/ExpanderController.h"
+#if defined(DEVICE_TAB5)
+#include "Boards/Tab5/Tab5UsbCdcService.h"
+#endif
 #include "Controllers/LoRaController.h"
 #include "Transformers/TerminalCommandTransformer.h"
 #include "Transformers/InstructionTransformer.h"
@@ -323,6 +326,9 @@ private:
     CellController cellController;
     FmController fmController;
     LoRaController loRaController;
+#if defined(DEVICE_TAB5)
+    Tab5UsbCdcService tab5UsbCdcService;   // USB-A host transport for the expander (constructed before it)
+#endif
     ExpanderController expanderController;
 
     // Transformers

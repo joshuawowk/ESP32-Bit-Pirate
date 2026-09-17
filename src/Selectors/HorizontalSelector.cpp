@@ -7,23 +7,58 @@ HorizontalSelector::HorizontalSelector(
     : display(display), input(input), utilityService(utilityService) {}
 
 int HorizontalSelector::select(
-    const std::string& title, 
-    const std::vector<std::string>& options, 
-    const std::string& description1, 
-    const std::string& description2) {
+    const std::string& title,
+    const std::vector<std::string>& options,
+    const std::string& description1,
+    const std::string& description2,
+    uint32_t timeoutMs,
+    int startIndex) {
 
-    int currentIndex = 0;
+    int currentIndex = startIndex;
+    if (currentIndex < 0) currentIndex = 0;
+    if (!options.empty() && currentIndex >= static_cast<int>(options.size())) {
+        currentIndex = static_cast<int>(options.size()) - 1;
+    }
     int lastIndex = -1;
 
     display.topBar(title, false, false);
 
+    // When a timeout is set we auto-select the default option after that long
+    // with NO input at all. The first key or tap cancels this for good -- from
+    // then on we just wait for the user to make a real selection.
+    bool autoSelect = (timeoutMs != 0);
+    uint32_t deadline = autoSelect ? (utilityService.nowMs() + timeoutMs) : 0;
+
+    // The second description line typically carries the "no input = default" hint,
+    // which stops being true once the user interacts, so it clears on first input.
+    std::string hint = description2;
+
     while (true) {
         if (lastIndex != currentIndex) {
-            display.horizontalSelection(options, currentIndex, description1, description2);
+            display.horizontalSelection(options, currentIndex, description1, hint);
             lastIndex = currentIndex;
         }
 
-        char key = input.handler();
+        char key;
+        if (autoSelect) {
+            key = input.readChar();  // non-blocking while the auto-select window is open
+            if (key == KEY_NONE) {
+                if (utilityService.nowMs() >= deadline) {
+                    // No key/tap the whole window, so currentIndex is still the
+                    // (clamped) default -- auto-select it.
+                    return currentIndex;
+                }
+                utilityService.sleepMs(10);
+                continue;
+            }
+            autoSelect = false;  // first key/tap cancels the timer permanently; process this key below
+            if (!hint.empty()) {
+                hint.clear();    // drop the "no input" hint now that input has happened
+                lastIndex = -1;  // force a redraw so the cleared hint shows even if the index doesn't change
+            }
+        } else {
+            key = input.handler();  // blocking (original behavior for button/touch boards)
+        }
 
         switch (key) {
             case KEY_ARROW_LEFT:
