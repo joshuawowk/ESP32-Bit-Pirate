@@ -23,7 +23,11 @@ int HorizontalSelector::select(
 
     display.topBar(title, false, false);
 
-    uint32_t deadline = timeoutMs ? (utilityService.nowMs() + timeoutMs) : 0;
+    // When a timeout is set we auto-select the default option after that long
+    // with NO input at all. The first key or tap cancels this for good -- from
+    // then on we just wait for the user to make a real selection.
+    bool autoSelect = (timeoutMs != 0);
+    uint32_t deadline = autoSelect ? (utilityService.nowMs() + timeoutMs) : 0;
 
     while (true) {
         if (lastIndex != currentIndex) {
@@ -32,16 +36,18 @@ int HorizontalSelector::select(
         }
 
         char key;
-        if (timeoutMs) {
-            key = input.readChar();  // non-blocking
+        if (autoSelect) {
+            key = input.readChar();  // non-blocking while the auto-select window is open
             if (key == KEY_NONE) {
                 if (utilityService.nowMs() >= deadline) {
-                    return currentIndex;  // no input within the window: auto-select the highlighted option
+                    // No key/tap the whole window, so currentIndex is still the
+                    // (clamped) default -- auto-select it.
+                    return currentIndex;
                 }
                 utilityService.sleepMs(10);
                 continue;
             }
-            deadline = utilityService.nowMs() + timeoutMs;  // any interaction resets the countdown
+            autoSelect = false;  // first key/tap cancels the timer permanently; process this key below
         } else {
             key = input.handler();  // blocking (original behavior for button/touch boards)
         }
