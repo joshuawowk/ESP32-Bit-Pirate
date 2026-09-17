@@ -29,9 +29,13 @@ int HorizontalSelector::select(
     bool autoSelect = (timeoutMs != 0);
     uint32_t deadline = autoSelect ? (utilityService.nowMs() + timeoutMs) : 0;
 
+    // The second description line typically carries the "no input = default" hint,
+    // which stops being true once the user interacts, so it clears on first input.
+    std::string hint = description2;
+
     while (true) {
         if (lastIndex != currentIndex) {
-            display.horizontalSelection(options, currentIndex, description1, description2);
+            display.horizontalSelection(options, currentIndex, description1, hint);
             lastIndex = currentIndex;
         }
 
@@ -48,6 +52,10 @@ int HorizontalSelector::select(
                 continue;
             }
             autoSelect = false;  // first key/tap cancels the timer permanently; process this key below
+            if (!hint.empty()) {
+                hint.clear();    // drop the "no input" hint now that input has happened
+                lastIndex = -1;  // force a redraw so the cleared hint shows even if the index doesn't change
+            }
         } else {
             key = input.handler();  // blocking (original behavior for button/touch boards)
         }
