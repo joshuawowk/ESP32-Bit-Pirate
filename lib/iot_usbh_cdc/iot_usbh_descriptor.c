@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "sdkconfig.h"
+// Only built for the ESP32-P4 (M5Stack Tab5); see the note in iot_usbh_cdc.c.
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+
 #include <string.h>
 #include <stdbool.h>
 #include "esp_err.h"
@@ -134,3 +138,5 @@ esp_err_t cdc_parse_interface_descriptor(const usb_device_desc_t *device_desc, c
     // If we did not find IN and OUT data endpoints, the device cannot be used
     return (info_ret->in_ep && info_ret->out_ep) ? ESP_OK : ESP_ERR_NOT_FOUND;
 }
+
+#endif // CONFIG_IDF_TARGET_ESP32P4

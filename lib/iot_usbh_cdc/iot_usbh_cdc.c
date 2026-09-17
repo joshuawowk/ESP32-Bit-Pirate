@@ -4,6 +4,12 @@
 * SPDX-License-Identifier: Apache-2.0
 */
 
+#include "sdkconfig.h"
+// This USB host CDC driver is only built for the ESP32-P4 (M5Stack Tab5). The
+// PlatformIO LDF pulls it into every env because it regex-scans includes without
+// evaluating guards, so on other targets we compile the whole unit to nothing.
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/queue.h>
@@ -1151,3 +1157,5 @@ esp_err_t usbh_cdc_desc_print(usbh_cdc_handle_t cdc_handle)
     usb_print_config_descriptor(config_desc, NULL);
     return ESP_OK;
 }
+
+#endif // CONFIG_IDF_TARGET_ESP32P4
