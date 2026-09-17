@@ -20,7 +20,8 @@ public:
                  IUartService& uartService,
                  ArgTransformer& argTransformer,
                  UserInputManager& userInputManager,
-                 HelpShell& helpShell);
+                 HelpShell& helpShell,
+                 IUartService* usbCdc = nullptr);  // optional USB-A host transport (Tab5)
     
     // Entry point for Expander cmds
     void handleCommand(const TerminalCommand& cmd);
@@ -46,6 +47,8 @@ private:
     ArgTransformer& argTransformer;
     UserInputManager& userInputManager;
     HelpShell& helpShell;
+    IUartService* usbCdc = nullptr;       // USB-A host transport, if provided
+    IUartService* activeUart = nullptr;   // selected transport (set in the ctor)
     GlobalState& state = GlobalState::getInstance();
 
     // Fixed UART settings for the Expander
