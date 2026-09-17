@@ -75,6 +75,7 @@ From there you can [install the firmware](https://geo-tp.github.io/ESP32-Bit-Pir
 | **Heltec Vision Master T190** | ![Photo of the Heltec Vision Master T190](/images/heltec-t190_s.png) | 15 GPIO (Header, Qwiiic), screen, 2 buttons, SX1262 LoRa |
 | **Seeed Studio Xiao S3** | ![Photo of the Seeed Studio Xiao ESP32-S3](/images/xiaos3_s.jpg)        | 9 GPIO (exposed pins), 1 button |
 | **Waveshare ESP32-S3-GEEK** | ![Photo of the Waveshare ESP32-S3-GEEK](/images/waveshare-s3-geek_s.jpg) | 7 GPIO (Dupont header), screen, 1 button, SD card |
+| [**M5Stack Tab5**](https://shop.m5stack.com/products/m5stack-tab5) | | ESP32-P4 + C6 (WiFi over SDIO), 5″ touchscreen, A164 keyboard, standalone mode, USB-A host for a C5 expander, SD card, battery. Native Bluetooth and WiFi monitor/sniff are not available on the P4 — run those on a [C5 expander](#expander) over USB-A. |
 
 - **Other ESP32-S3-based Boards**
 
@@ -136,6 +137,12 @@ You can write and test scripts directly in the browser with the [ESP32 Bit Pirat
 The Expander adds support for the **WiFi 5 GhZ** or other radio protocols.
 
 ![A Cardputer connected to an expander C5](images/cardputer_with_c5.jpg)
+
+On the **M5Stack Tab5**, the expander also works over the **USB-A host port**: plug an
+ESP32-C5 (its USB-C UART console, e.g. running [JanOS](https://github.com/C5Lab/projectZero))
+into the Tab5's USB-A port and choose the USB-A host option when entering EXPANDER mode.
+This gives the ESP32-P4 the WiFi monitor/sniff/deauth features it lacks natively. Both a
+native USB-Serial-JTAG C5 and a CP2102-bridge C5 devkit are supported.
 
 
 ## Dock
