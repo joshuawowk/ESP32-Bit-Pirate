@@ -1,6 +1,7 @@
 #if defined(DEVICE_TAB5)
 
 #include "Boards/Tab5/Tab5TerminalView.h"
+#include "Boards/Tab5/Tab5Keyboard.h"
 
 namespace {
 constexpr uint16_t COL_BG   = 0x0000;  // black
@@ -59,14 +60,21 @@ void Tab5TerminalView::print(const std::string& text) {
     std::string filtered;
     filtered.reserve(decoded.size());
     for (unsigned char b : decoded) {
+        // A held arrow scrolls faster than this view can repaint, so the
+        // keyboard also hands over the repeats that are already due but not yet
+        // delivered one-by-one: apply the whole burst now and repaint once.
         if (b == (unsigned char)CARDPUTER_SPECIAL_ARROW_UP) {
             int maxScroll = (int)history.size();
-            if (scrollOffset < maxScroll) scrollOffset++;
+            scrollOffset += 1 + Tab5Keyboard::instance().takePendingScroll(
+                                    CARDPUTER_SPECIAL_ARROW_UP);
+            if (scrollOffset > maxScroll) scrollOffset = maxScroll;
             sawScroll = true;
             continue;
         }
         if (b == (unsigned char)CARDPUTER_SPECIAL_ARROW_DOWN) {
-            if (scrollOffset > 0) scrollOffset--;
+            scrollOffset -= 1 + Tab5Keyboard::instance().takePendingScroll(
+                                    CARDPUTER_SPECIAL_ARROW_DOWN);
+            if (scrollOffset < 0) scrollOffset = 0;
             sawScroll = true;
             continue;
         }

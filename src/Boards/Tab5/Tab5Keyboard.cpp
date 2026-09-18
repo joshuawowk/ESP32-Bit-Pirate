@@ -18,6 +18,16 @@ constexpr uint8_t   REG_HID_EVENT = 0x30; // {modifier, keycode}
 constexpr uint8_t   REG_VERSION   = 0xF0;
 constexpr uint8_t   MODE_HID      = 0x01;
 
+// Synthesized key repeat for the terminal-scroll arrows. The A164 reports one
+// press and one release event per key and never repeats, so the cadence is ours
+// to pick: ~8 rows/s from the moment the key goes down, stepping up to ~24
+// rows/s once it has been held for 2 s.
+constexpr uint32_t REPEAT_SLOW_MS  = 125;    // ~8 rows/s
+constexpr uint32_t REPEAT_FAST_MS  = 42;     // ~24 rows/s
+constexpr uint32_t REPEAT_ACCEL_MS = 2000;   // hold this long -> fast rate
+constexpr int      REPEAT_MAX_BURST = 32;    // cap a catch-up burst after a stall
+constexpr uint32_t REPEAT_MAX_HOLD_MS = 30000;  // give up if a release is ever missed
+
 // M5Unified claims the two HP I2C controllers (internal PMIC/touch bus and the
 // Grove/Ext bus). Use the ESP-IDF i2c_master driver with i2c_port = -1 so it
 // auto-allocates a free controller for the keyboard on GPIO0/1 -- this is what
@@ -100,36 +110,116 @@ char Tab5Keyboard::readChar() {
     if (!started) begin();
     if (!present) return KEY_NONE;
 
+    // A real event always wins over a synthesized repeat, so a release is seen
+    // as soon as it is queued and the repeat stops on the same poll.
+    char c = pollEvent();
+    if (c != KEY_NONE) return c;
+
+    return nextRepeat();
+}
+
+// Drain at most one queued HID event and keep the hold state in sync with it.
+char Tab5Keyboard::pollEvent() {
     uint8_t sys[4] = {0};
-    if (!readReg(REG_SYS, sys, 4)) return KEY_NONE;
-    uint8_t events = sys[2];
-    if (events == 0) return KEY_NONE;  // nothing queued
+    if (!readReg(REG_SYS, sys, 4)) {
+        stopRepeat();  // bus trouble / keyboard unplugged: never keep scrolling
+        return KEY_NONE;
+    }
+    if (sys[2] == 0) return KEY_NONE;  // nothing queued
 
     uint8_t hid[2] = {0xFF, 0xFF};
-    if (!readReg(REG_HID_EVENT, hid, 2)) return KEY_NONE;
+    if (!readReg(REG_HID_EVENT, hid, 2)) {
+        stopRepeat();
+        return KEY_NONE;
+    }
 
     uint8_t modifier = hid[0];
     uint8_t keycode  = hid[1];
-    if (keycode == 0x00 || keycode == 0xFF) return KEY_NONE;  // release / empty
+    if (keycode == 0xFF) return KEY_NONE;  // queue turned out to be empty
+    if (keycode == 0x00) {                 // release (the A164 zeroes the keycode)
+        stopRepeat();
+        return KEY_NONE;
+    }
 
     bool shift = (modifier & 0x22) != 0;  // LSHIFT | RSHIFT
+    char c = KEY_NONE;
 
     switch (keycode) {
-        case 0x28: case 0x58: return KEY_OK;               // Enter / Keypad Enter
-        case 0x2A:            return KEY_DEL;              // Backspace
-        case 0x2B:            return KEY_TAB_CUSTOM;       // Tab
-        case 0x4F:            return KEY_ARROW_RIGHT;      // Right
-        case 0x50:            return KEY_ARROW_LEFT;       // Left
-        case 0x51:            return CARDPUTER_SPECIAL_ARROW_DOWN;  // Down -> terminal scroll
-        case 0x52:            return CARDPUTER_SPECIAL_ARROW_UP;    // Up   -> terminal scroll
-        default:              break;
+        case 0x28: case 0x58: c = KEY_OK;               break;  // Enter / Keypad Enter
+        case 0x2A:            c = KEY_DEL;              break;  // Backspace
+        case 0x2B:            c = KEY_TAB_CUSTOM;       break;  // Tab
+        case 0x4F:            c = KEY_ARROW_RIGHT;      break;  // Right
+        case 0x50:            c = KEY_ARROW_LEFT;       break;  // Left
+        case 0x51:            c = CARDPUTER_SPECIAL_ARROW_DOWN; break;  // Down -> terminal scroll
+        case 0x52:            c = CARDPUTER_SPECIAL_ARROW_UP;   break;  // Up   -> terminal scroll
+        default:
+            if (keycode <= 0x38) c = KC2ASCII[keycode][shift ? 1 : 0];
+            if (c == 0) c = KEY_NONE;
+            break;
     }
 
-    if (keycode <= 0x38) {
-        char c = KC2ASCII[keycode][shift ? 1 : 0];
-        if (c != 0) return c;
+    // Only the two arrow keys repeat, and the test is on the keycode rather than
+    // on `c`: CARDPUTER_SPECIAL_ARROW_DOWN is '`', which the backtick key also
+    // produces. Any other press (mapped or not) ends a repeat in progress -- the
+    // release event carries no key identity, so the held key has to be whatever
+    // went down last.
+    if (keycode == 0x51 || keycode == 0x52) {
+        startRepeat(c);
+    } else {
+        stopRepeat();
     }
-    return KEY_NONE;
+
+    return c;
+}
+
+// Hand out one synthesized repeat if the held scroll arrow is due for one.
+char Tab5Keyboard::nextRepeat() {
+    if (repeatChar == KEY_NONE) return KEY_NONE;
+
+    uint32_t now = millis();
+    if ((uint32_t)(now - holdStartMs) >= REPEAT_MAX_HOLD_MS) {
+        stopRepeat();  // a release we never saw would otherwise scroll forever
+        return KEY_NONE;
+    }
+
+    if (pendingRepeats == 0) {
+        uint32_t period = ((uint32_t)(now - holdStartMs) >= REPEAT_ACCEL_MS)
+                              ? REPEAT_FAST_MS
+                              : REPEAT_SLOW_MS;
+        while ((int32_t)(now - nextRepeatMs) >= 0 && pendingRepeats < REPEAT_MAX_BURST) {
+            pendingRepeats++;
+            nextRepeatMs += period;
+        }
+        // Fell far behind (long command output, slow redraw): restart the clock
+        // rather than machine-gunning through the whole backlog.
+        if ((int32_t)(now - nextRepeatMs) > (int32_t)period) {
+            nextRepeatMs = now + period;
+        }
+    }
+
+    if (pendingRepeats <= 0) return KEY_NONE;
+    pendingRepeats--;
+    return repeatChar;
+}
+
+int Tab5Keyboard::takePendingScroll(char sentinel) {
+    if (repeatChar != sentinel || pendingRepeats <= 0) return 0;
+    int n = pendingRepeats;
+    pendingRepeats = 0;
+    return n;
+}
+
+void Tab5Keyboard::startRepeat(char sentinel) {
+    uint32_t now   = millis();
+    repeatChar     = sentinel;
+    holdStartMs    = now;
+    nextRepeatMs   = now + REPEAT_SLOW_MS;
+    pendingRepeats = 0;
+}
+
+void Tab5Keyboard::stopRepeat() {
+    repeatChar     = KEY_NONE;
+    pendingRepeats = 0;
 }
 
 #endif
